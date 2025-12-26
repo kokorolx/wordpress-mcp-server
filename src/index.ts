@@ -19,6 +19,8 @@ import { setSEOMetadataTool } from './tools/set-seo-metadata.js';
 import { embedImagesInContentTool } from './tools/embed-images-in-content.js';
 import { verifyBlogStructureTool } from './tools/verify-blog-structure.js';
 import { createCompleteBlogTool } from './tools/create-complete-blog.js';
+import { convertMarkdownTool } from './tools/convert-markdown.js';
+import { getBlogCreationWorkflowTool } from './tools/get-blog-creation-workflow.js';
 
 async function main() {
   const wpClient = new WordPressClient(config.wordpress);
@@ -156,6 +158,22 @@ async function main() {
     inputSchema: { input: z.any() }
   }, async (params: any) => {
     const res = await createCompleteBlogTool({...params, wpClient});
+    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
+  });
+
+  server.registerTool('convert-markdown-to-html', {
+    description: 'Convert markdown content to HTML',
+    inputSchema: { markdown: z.string() }
+  }, async (params: any) => {
+    const res = await convertMarkdownTool(params);
+    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
+  });
+
+  server.registerTool('get-blog-creation-workflow', {
+    description: 'Get the recommended workflow for creating a blog post',
+    inputSchema: {}
+  }, async () => {
+    const res = await getBlogCreationWorkflowTool();
     return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
   });
 

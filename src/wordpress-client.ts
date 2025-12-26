@@ -84,6 +84,19 @@ export class WordPressClient {
     return res.data;
   }
 
+  async updatePost(postId: number, data: any): Promise<PostCreationResult> {
+    const res = await this.axios.post(`/wp/v2/posts/${postId}`, data);
+    return { id: res.data.id, link: res.data.link };
+  }
+
+  async findPostBySlug(slug: string): Promise<PostCreationResult | null> {
+    const res = await this.axios.get('/wp/v2/posts', { params: { slug, context: 'edit' } });
+    if (res.data && res.data.length > 0) {
+      return { id: res.data[0].id, link: res.data[0].link };
+    }
+    return null;
+  }
+
   // Category management
   async createCategory(data: CategoryData): Promise<CategoryResult> {
     const res = await this.axios.post('/wp/v2/categories', data);

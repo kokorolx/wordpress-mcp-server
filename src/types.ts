@@ -83,6 +83,7 @@ export interface YoastSEOData {
   twitterDescription?: string;
   twitterImage?: string;
   twitterCardType?: 'summary' | 'summary_large_image';
+  relatedKeyphrases?: string[]; // Array of strings, will be converted to JSON
 }
 
 export interface RankMathSEOData {
@@ -104,6 +105,8 @@ export interface RankMathSEOData {
 export type SEOData = { plugin: 'yoast'; data: YoastSEOData } | { plugin: 'rankmath'; data: RankMathSEOData };
 
 export interface PostData {
+  id?: number; // For updates
+  slug?: string; // For updates
   title: string;
   content: string;
   excerpt?: string;

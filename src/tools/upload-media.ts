@@ -50,8 +50,28 @@ export const uploadMediaTool = async (params: {
         buffer = await fs.promises.readFile(itemSource);
       }
 
-      // Optimize using sharp
-      const optimized = await sharp(buffer).resize({ width: 1600 }).jpeg({ quality: 80 }).toBuffer();
+      // Optimize using Tinify if API key present
+      const { config } = await import('../config.js');
+      if (config.tinypng.apiKey) {
+        try {
+          const tinify = await import('tinify');
+          tinify.default.key = config.tinypng.apiKey!;
+          const tinifyResult = await tinify.default.fromBuffer(buffer).toBuffer();
+          buffer = Buffer.from(tinifyResult);
+          // We don't resize with sharp if using tinify to avoid double processing,
+          // or we could chain them. For now, let's respect the user's wish for "optimization"
+          // If resizing is critical, we should use sharp BEFORE tinify or use tinify resizing.
+          // Assuming optimization is the priority here.
+        } catch (optimizeErr) {
+          console.error(`Failed to optimize image ${filename} with Tinify:`, optimizeErr);
+          // Fallback to original buffer (or proceed to sharp if we want consistent resizing)
+        }
+      }
+
+      // Resize/Format using sharp regardless (ensure consistent size/format)
+      // If already optimized by tinify, this might re-encode, so ideally we check.
+      // But preserving specific width (1600) is important.
+      const optimized = await sharp(buffer).resize({ width: 1600, withoutEnlargement: true }).jpeg({ quality: 80 }).toBuffer();
       const mime = 'image/jpeg';
 
       const res = await wpClient.uploadMediaFromBuffer(

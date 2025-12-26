@@ -16,6 +16,11 @@ export const setSEOMetadataTool = async (params: {
       if (d.title) meta._yoast_wpseo_title = d.title;
       if (d.metaDescription) meta._yoast_wpseo_metadesc = d.metaDescription;
       if (d.focusKeyword) meta._yoast_wpseo_focuskw = d.focusKeyword;
+      // Related keyphrases are stored as JSON in _yoast_wpseo_focuskeywords
+      if (d.relatedKeyphrases && d.relatedKeyphrases.length > 0) {
+        const related = d.relatedKeyphrases.map(kw => ({ keyword: kw }));
+        meta._yoast_wpseo_focuskeywords = JSON.stringify(related);
+      }
       if (d.metaRobotsNoindex) meta._yoast_wpseo_meta_robots_noindex = d.metaRobotsNoindex;
       if (d.metaRobotsNofollow) meta._yoast_wpseo_meta_robots_nofollow = d.metaRobotsNofollow;
       if (d.canonicalUrl) meta._yoast_wpseo_canonical = d.canonicalUrl;

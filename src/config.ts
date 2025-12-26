@@ -14,8 +14,10 @@ const envSchema = z.object({
   PROCESS_CONTENT_IMAGES: z.string().optional().default('true'),
   DEFAULT_POST_STATUS: z.enum(['draft', 'publish', 'pending']).optional().default('draft'),
   AUTO_GENERATE_EXCERPT: z.string().optional().default('true'),
-  WORDPRESS_CONTENT_TYPE: z.enum(['markdown', 'html']).optional().default('markdown'),
-  REQUIRE_PREVIEW_APPROVAL: z.string().optional().default('true'),
+  WORDPRESS_DEFAULT_STATUS: z.string().default('draft'),
+  WORDPRESS_CONTENT_TYPE: z.string().default('html'),
+  REQUIRE_PREVIEW_APPROVAL: z.string().default('false'),
+  TINYPNG_API_KEY: z.string().optional(),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -30,6 +32,9 @@ export const config = {
     url: parsed.data.WORDPRESS_URL.replace(/\/$/, ''),
     username: parsed.data.WORDPRESS_USERNAME,
     appPassword: parsed.data.WORDPRESS_APP_PASSWORD,
+  },
+  tinypng: {
+    apiKey: parsed.data.TINYPNG_API_KEY,
   },
   mcpName: parsed.data.MCP_SERVER_NAME,
   seoPlugin: parsed.data.SEO_PLUGIN,
