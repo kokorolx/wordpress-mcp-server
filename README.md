@@ -33,6 +33,31 @@ env WORDPRESS_URL=https://your-site.com \
     npx @kokorolx/wordpress-mcp-kit
 ```
 
+### Configuration Example (Claude Desktop)
+
+Add this to your `claude_desktop_config.json`:
+
+```json
+{
+  "mcpServers": {
+    "wordpress": {
+      "command": "npx",
+      "args": [
+        "-y",
+        "@kokorolx/wordpress-mcp-kit"
+      ],
+      "env": {
+        "WORDPRESS_URL": "https://your-site.com",
+        "WORDPRESS_USERNAME": "your-username",
+        "WORDPRESS_APP_PASSWORD": "your-app-password",
+        "SEO_PLUGIN": "yoast",
+        "AUTO_GENERATE_FEATURED_IMAGE": "true"
+      }
+    }
+  }
+}
+```
+
 ### Local Deployment
 - Development (requires ts-node):
   ```bash
