@@ -14,6 +14,8 @@ const envSchema = z.object({
   PROCESS_CONTENT_IMAGES: z.string().optional().default('true'),
   DEFAULT_POST_STATUS: z.enum(['draft', 'publish', 'pending']).optional().default('draft'),
   AUTO_GENERATE_EXCERPT: z.string().optional().default('true'),
+  WORDPRESS_CONTENT_TYPE: z.enum(['markdown', 'html']).optional().default('markdown'),
+  REQUIRE_PREVIEW_APPROVAL: z.string().optional().default('true'),
 });
 
 const parsed = envSchema.safeParse(process.env);
@@ -38,5 +40,7 @@ export const config = {
   postDefaults: {
     status: parsed.data.DEFAULT_POST_STATUS,
     autoExcerpt: parsed.data.AUTO_GENERATE_EXCERPT === 'true',
+    contentType: parsed.data.WORDPRESS_CONTENT_TYPE || 'markdown', // 'markdown' | 'html'
+    requirePreview: parsed.data.REQUIRE_PREVIEW_APPROVAL !== 'false', // Default to true for safety
   }
 };

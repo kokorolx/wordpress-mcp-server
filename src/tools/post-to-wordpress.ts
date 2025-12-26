@@ -2,14 +2,31 @@ import { WordPressClient } from '../wordpress-client.js';
 import { PostData, PostCreationResult } from '../types.js';
 import { MCPError } from '../utils/errors.js';
 
+import { marked } from 'marked';
+import { config } from '../config.js';
+
 export const postToWordpressTool = async (params: { wpClient: WordPressClient; post: PostData }) => {
   try {
     const { wpClient, post } = params;
+
+    // Process Content (Markdown -> HTML)
+    let finalContent = post.content;
+    if (config.postDefaults.contentType === 'markdown') {
+      finalContent = await marked(post.content);
+    }
+
+    // Enforce Draft Mode if Preview Required
+    let finalStatus = post.status || 'draft';
+    if (config.postDefaults.requirePreview && finalStatus === 'publish') {
+      console.log('Force status to draft because preview is required');
+      finalStatus = 'draft';
+    }
+
     const payload: any = {
       title: post.title,
-      content: post.content,
+      content: finalContent,
       excerpt: post.excerpt,
-      status: post.status || 'draft',
+      status: finalStatus,
       categories: post.categories,
       tags: post.tags,
       featured_media: post.featuredMedia,

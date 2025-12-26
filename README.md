@@ -105,6 +105,8 @@ Key configuration options in `.env`:
 - `SEO_PLUGIN`: Choose preferred plugin (`yoast` or `rankmath`).
 - `AUTO_GENERATE_FEATURED_IMAGE`: Control automation settings.
 - `PROCESS_CONTENT_IMAGES`: Toggle automated image hosting.
+- `WORDPRESS_CONTENT_TYPE`: `markdown` (default) or `html`. Autos-converts Markdown to HTML.
+- `REQUIRE_PREVIEW_APPROVAL`: `true` (default) or `false`. Forces posts to `draft` for review.
 
 See `.env.example` for the full list.
 
