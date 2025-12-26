@@ -30,7 +30,7 @@ You can run the server directly using `npx` with inline configuration:
 env WORDPRESS_URL=https://your-site.com \
     WORDPRESS_USERNAME=your-username \
     WORDPRESS_APP_PASSWORD=your-app-password \
-    npx wordpress-mcp-server
+    npx @kokorolx/wordpress-mcp-kit
 ```
 
 ### Local Deployment

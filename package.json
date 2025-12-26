@@ -1,6 +1,9 @@
 {
-  "name": "wordpress-mcp-server",
+  "name": "@kokorolx/wordpress-mcp-kit",
   "version": "1.1.0",
+  "publishConfig": {
+    "access": "public"
+  },
   "main": "dist/index.js",
   "bin": {
     "wordpress-mcp": "dist/index.js"
@@ -17,15 +20,15 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.0.0",
     "axios": "^1.6.0",
+    "dotenv": "^16.0.0",
     "form-data": "^4.0.0",
     "marked": "^9.0.0",
     "sharp": "^0.32.0",
-    "dotenv": "^16.0.0",
     "zod": "^3.23.0"
   },
   "devDependencies": {
+    "@types/node": "^18.0.0",
     "ts-node": "^10.9.1",
-    "typescript": "^5.0.0",
-    "@types/node": "^18.0.0"
+    "typescript": "^5.0.0"
   }
 }
