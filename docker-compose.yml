@@ -1,0 +1,15 @@
+version: '3.8'
+services:
+  wordpress-mcp:
+    build: .
+    environment:
+      - WORDPRESS_URL=${WORDPRESS_URL}
+      - WORDPRESS_USERNAME=${WORDPRESS_USERNAME}
+      - WORDPRESS_APP_PASSWORD=${WORDPRESS_APP_PASSWORD}
+      - MCP_SERVER_NAME=${MCP_SERVER_NAME:-wordpress-mcp}
+      - SEO_PLUGIN=${SEO_PLUGIN:-yoast}
+      - AUTO_GENERATE_FEATURED_IMAGE=${AUTO_GENERATE_FEATURED_IMAGE:-true}
+      - PROCESS_CONTENT_IMAGES=${PROCESS_CONTENT_IMAGES:-true}
+    stdin_open: true
+    tty: true
+    restart: unless-stopped
