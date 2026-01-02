@@ -56,19 +56,33 @@ export const postToWordpressTool = async (params: { wpClient: WordPressClient; p
       categories: post.categories,
       tags: post.tags,
       featured_media: featuredMediaId,
+      seo: post.seo || post.yoast // Pass SEO data for GraphQL
     };
 
     let result: PostCreationResult;
 
     if (isUpdate && postId) {
       console.error(`Updating existing post ${postId}`);
+      // For now, we only support REST updates as per the task "use graphql to create post"
+      // If we wanted to support GraphQL updates we would need to implement updatePostGraphQL
       result = await wpClient.updatePost(postId, payload);
     } else {
-      result = await wpClient.createPost(payload);
+      // Use GraphQL if configured
+      if (wpClient.config.graphQlUrl && wpClient.config.refreshToken) {
+        console.error('Creating post via GraphQL'); // console.error shows up in MCP logs usually
+        result = await wpClient.createPostGraphQL(payload);
+      } else {
+        result = await wpClient.createPost(payload);
+      }
     }
 
-    // Support new unified SEO field
-    if (post.seo) {
+    // Support new unified SEO field (For REST fallback only, or if GraphQL didn't handle it?
+    // Ideally GraphQL handles it above. But if we want to be safe, we can check if it was already handled.
+    // However, setSEOMetadataTool is built for REST/updatePostMeta.
+    // Let's only call it if we used REST or if we want to support post-creation SEO update for REST.
+    const usedGraphQL = !!(wpClient.config.graphQlUrl && wpClient.config.refreshToken);
+
+    if (post.seo && !usedGraphQL) {
       const { setSEOMetadataTool } = await import('./set-seo-metadata.js');
       await setSEOMetadataTool({ wpClient, postId: result.id, seo: post.seo });
     }

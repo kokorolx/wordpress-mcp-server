@@ -6,8 +6,10 @@ dotenv.config();
 
 const envSchema = z.object({
   WORDPRESS_URL: z.string().url(),
-  WORDPRESS_USERNAME: z.string(),
-  WORDPRESS_APP_PASSWORD: z.string(),
+  WORDPRESS_USERNAME: z.string().optional(),
+  WORDPRESS_APP_PASSWORD: z.string().optional(),
+  WORDPRESS_API_URL: z.string().url().optional(),
+  WORDPRESS_AUTH_REFRESH_TOKEN: z.string().optional(),
   MCP_SERVER_NAME: z.string().optional().default('wordpress-mcp'),
   SEO_PLUGIN: z.enum(['yoast', 'rankmath']).optional().default('yoast'),
   AUTO_GENERATE_FEATURED_IMAGE: z.string().optional().default('true'),
@@ -32,6 +34,8 @@ export const config = {
     url: parsed.data.WORDPRESS_URL.replace(/\/$/, ''),
     username: parsed.data.WORDPRESS_USERNAME,
     appPassword: parsed.data.WORDPRESS_APP_PASSWORD,
+    graphQlUrl: parsed.data.WORDPRESS_API_URL,
+    refreshToken: parsed.data.WORDPRESS_AUTH_REFRESH_TOKEN,
   },
   tinypng: {
     apiKey: parsed.data.TINYPNG_API_KEY,

@@ -1,7 +1,9 @@
 export interface WordPressConfig {
   url: string;
-  username: string;
-  appPassword: string;
+  username?: string;
+  appPassword?: string;
+  graphQlUrl?: string; // Optional: For GraphQL operations
+  refreshToken?: string; // Optional: For GraphQL authentication
 }
 
 export interface MediaResult {

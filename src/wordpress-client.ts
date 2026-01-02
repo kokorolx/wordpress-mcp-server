@@ -16,20 +16,204 @@ import {
 
 export class WordPressClient {
   private axios: AxiosInstance;
-  private config: WordPressConfig;
+  public readonly config: WordPressConfig;
 
   constructor(config: WordPressConfig) {
     this.config = config;
-    this.axios = axios.create({
+    const axiosConfig: any = {
       baseURL: `${this.config.url}/wp-json`,
-      auth: {
-        username: this.config.username,
-        password: this.config.appPassword,
-      },
       headers: {
         'User-Agent': 'wordpress-mcp-server/0.1.0',
       },
-    });
+    };
+
+    if (this.config.username && this.config.appPassword) {
+      axiosConfig.auth = {
+        username: this.config.username,
+        password: this.config.appPassword,
+      };
+    }
+
+    this.axios = axios.create(axiosConfig);
+  }
+
+  private async getAuthToken(): Promise<string> {
+    if (!this.config.refreshToken) {
+      throw new Error('Refresh token is required for GraphQL operations');
+    }
+
+    if (!this.config.graphQlUrl) {
+      throw new Error('GraphQL URL is required for GraphQL operations');
+    }
+
+    const mutation = `
+      mutation RefreshAuthToken($refreshToken: String!) {
+        refreshJwtAuthToken(input: {jwtRefreshToken: $refreshToken}) {
+          authToken
+        }
+      }
+    `;
+
+    try {
+      const response = await axios.post(
+        this.config.graphQlUrl,
+        {
+          query: mutation,
+          variables: { refreshToken: this.config.refreshToken },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+          },
+        }
+      );
+
+      if (response.data.errors) {
+        throw new Error(response.data.errors[0].message);
+      }
+
+      return response.data.data.refreshJwtAuthToken.authToken;
+    } catch (error: any) {
+      throw new Error(`Failed to refresh auth token: ${error.message}`);
+    }
+  }
+
+  async createPostGraphQL(data: any): Promise<PostCreationResult> {
+    if (!this.config.graphQlUrl) {
+      throw new Error('GraphQL URL is not configured');
+    }
+
+    const authToken = await this.getAuthToken();
+
+    // Convert REST API data format to GraphQL input format
+    // Note: This is a basic mapping, might need adjustment based on specific schema
+    const input: any = {
+      title: data.title,
+      content: data.content,
+      status: data.status ? data.status.toUpperCase() : 'DRAFT',
+    };
+
+    if (data.excerpt) input.excerpt = data.excerpt;
+
+    // Handle integer IDs for categories and tags
+    if (data.categories && Array.isArray(data.categories)) {
+      input.categories = {
+        nodes: data.categories.map((id: number) => ({ databaseId: id })),
+      };
+    }
+
+    if (data.tags && Array.isArray(data.tags)) {
+      input.tags = {
+        nodes: data.tags.map((id: number) => ({ databaseId: id })),
+      };
+    }
+
+    if (data.featured_media) {
+      input.featuredImage = {
+        node: { databaseId: data.featured_media },
+      };
+    }
+
+    // Support for SEO fields (Yoast/RPGraphQL)
+    if (data.seo) {
+       // Check if it's Yoast or minimal format
+       const seoData = data.seo.data || data.seo;
+
+       input.seo = {
+         title: seoData.title,
+         metaDesc: seoData.metaDescription || seoData.description,
+         focuskw: seoData.focusKeyword,
+         canonical: seoData.canonicalUrl,
+         metaRobotsNoindex: seoData.metaRobotsNoindex === '1' ? 'noindex' : undefined,
+         metaRobotsNofollow: seoData.metaRobotsNofollow === '1' ? 'nofollow' : undefined,
+         opengraphTitle: seoData.opengraphTitle || seoData.ogTitle,
+         opengraphDescription: seoData.opengraphDescription || seoData.ogDescription,
+         opengraphImage: { mediaItem: { url: seoData.opengraphImage || seoData.ogImage } },
+         twitterTitle: seoData.twitterTitle,
+         twitterDescription: seoData.twitterDescription,
+         twitterImage: { mediaItem: { url: seoData.twitterImage } },
+       };
+
+       // Remove undefined keys
+       Object.keys(input.seo).forEach(key => input.seo[key] === undefined && delete input.seo[key]);
+    }
+
+    // Support for Unified SEO field mapping if present in data
+    // The data passed here is 'payload' from post-to-wordpress.ts which might not have 'seo' directly if it was constructed for REST
+    // But we might need to change how data is passed if we want to support SEO via GraphQL mutations aka 'updateSEO' or similar extensions.
+    // For now, let's Stick to core post creation.
+
+    const mutation = `
+      mutation CreatePost($input: CreatePostInput!) {
+        createPost(input: $input) {
+          post {
+            databaseId
+            link
+            # If we need to verify status etc.
+          }
+        }
+      }
+    `;
+
+    try {
+      const response = await axios.post(
+        this.config.graphQlUrl,
+        {
+          query: mutation,
+          variables: { input },
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      if (response.data.errors) {
+        throw new Error(`GraphQL Error: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      const post = response.data.data.createPost.post;
+      return {
+        id: post.databaseId,
+        link: post.link,
+      };
+    } catch (error: any) {
+      throw new Error(`Failed to create post via GraphQL: ${error.message}`);
+    }
+  }
+
+  async runGraphQL(query: string, variables?: any): Promise<any> {
+    if (!this.config.graphQlUrl) {
+      throw new Error('GraphQL URL is not configured');
+    }
+
+    const authToken = await this.getAuthToken();
+
+    try {
+      const response = await axios.post(
+        this.config.graphQlUrl,
+        {
+          query,
+          variables,
+        },
+        {
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${authToken}`,
+          },
+        }
+      );
+
+      if (response.data.errors) {
+        throw new Error(`GraphQL Error: ${JSON.stringify(response.data.errors)}`);
+      }
+
+      return response.data.data;
+    } catch (error: any) {
+      throw new Error(`Failed to run GraphQL query: ${error.message}`);
+    }
   }
 
   /**
