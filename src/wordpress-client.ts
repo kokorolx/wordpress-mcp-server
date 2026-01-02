@@ -55,7 +55,8 @@ export class WordPressClient {
     `;
 
     try {
-      const response = await axios.post(
+      // Use this.axios to leverage configured Basic Auth if available
+      const response = await this.axios.post(
         this.config.graphQlUrl,
         {
           query: mutation,
@@ -114,34 +115,8 @@ export class WordPressClient {
       };
     }
 
-    // Support for SEO fields (Yoast/RPGraphQL)
-    if (data.seo) {
-       // Check if it's Yoast or minimal format
-       const seoData = data.seo.data || data.seo;
-
-       input.seo = {
-         title: seoData.title,
-         metaDesc: seoData.metaDescription || seoData.description,
-         focuskw: seoData.focusKeyword,
-         canonical: seoData.canonicalUrl,
-         metaRobotsNoindex: seoData.metaRobotsNoindex === '1' ? 'noindex' : undefined,
-         metaRobotsNofollow: seoData.metaRobotsNofollow === '1' ? 'nofollow' : undefined,
-         opengraphTitle: seoData.opengraphTitle || seoData.ogTitle,
-         opengraphDescription: seoData.opengraphDescription || seoData.ogDescription,
-         opengraphImage: { mediaItem: { url: seoData.opengraphImage || seoData.ogImage } },
-         twitterTitle: seoData.twitterTitle,
-         twitterDescription: seoData.twitterDescription,
-         twitterImage: { mediaItem: { url: seoData.twitterImage } },
-       };
-
-       // Remove undefined keys
-       Object.keys(input.seo).forEach(key => input.seo[key] === undefined && delete input.seo[key]);
-    }
-
-    // Support for Unified SEO field mapping if present in data
-    // The data passed here is 'payload' from post-to-wordpress.ts which might not have 'seo' directly if it was constructed for REST
-    // But we might need to change how data is passed if we want to support SEO via GraphQL mutations aka 'updateSEO' or similar extensions.
-    // For now, let's Stick to core post creation.
+    // Unified SEO field mapping removed as it caused schema validation errors (field 'seo' not defined)
+    // We will handle SEO updates via the separate tool (REST or specific mutation if available later)
 
     const mutation = `
       mutation CreatePost($input: CreatePostInput!) {
@@ -156,7 +131,8 @@ export class WordPressClient {
     `;
 
     try {
-      const response = await axios.post(
+      // Use this.axios but override Authorization header with Bearer token
+      const response = await this.axios.post(
         this.config.graphQlUrl,
         {
           query: mutation,
@@ -192,7 +168,8 @@ export class WordPressClient {
     const authToken = await this.getAuthToken();
 
     try {
-      const response = await axios.post(
+      // Use this.axios but override Authorization header with Bearer token
+      const response = await this.axios.post(
         this.config.graphQlUrl,
         {
           query,

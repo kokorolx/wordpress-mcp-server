@@ -76,13 +76,9 @@ export const postToWordpressTool = async (params: { wpClient: WordPressClient; p
       }
     }
 
-    // Support new unified SEO field (For REST fallback only, or if GraphQL didn't handle it?
-    // Ideally GraphQL handles it above. But if we want to be safe, we can check if it was already handled.
-    // However, setSEOMetadataTool is built for REST/updatePostMeta.
-    // Let's only call it if we used REST or if we want to support post-creation SEO update for REST.
-    const usedGraphQL = !!(wpClient.config.graphQlUrl && wpClient.config.refreshToken);
-
-    if (post.seo && !usedGraphQL) {
+    // Support new unified SEO field
+    // We always call this because createPostGraphQL does NOT handle SEO (schema limitation)
+    if (post.seo) {
       const { setSEOMetadataTool } = await import('./set-seo-metadata.js');
       await setSEOMetadataTool({ wpClient, postId: result.id, seo: post.seo });
     }
