@@ -10,15 +10,15 @@ export const postToWordpressTool = async (params: { wpClient: WordPressClient; p
     const { wpClient, post } = params;
 
     // Process Content (Markdown -> HTML)
-    let finalContent = post.content;
-    if (config.postDefaults.contentType === 'markdown') {
+    let finalContent = post.content || '';
+    if (config.postDefaults.contentType === 'markdown' && post.content) {
       finalContent = await marked(post.content);
     }
 
     // Enforce Draft Mode if Preview Required
     let finalStatus = post.status || 'draft';
     if (config.postDefaults.requirePreview && finalStatus === 'publish') {
-      console.log('Force status to draft because preview is required');
+      console.error('Force status to draft because preview is required');
       finalStatus = 'draft';
     }
 

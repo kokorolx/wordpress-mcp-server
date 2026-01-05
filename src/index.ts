@@ -21,6 +21,7 @@ import { verifyBlogStructureTool } from './tools/verify-blog-structure.js';
 import { createCompleteBlogTool } from './tools/create-complete-blog.js';
 import { convertMarkdownTool } from './tools/convert-markdown.js';
 import { getBlogCreationWorkflowTool } from './tools/get-blog-creation-workflow.js';
+import { formatError } from './utils/errors.js';
 
 async function main() {
   const wpClient = new WordPressClient(config.wordpress);
@@ -30,14 +31,27 @@ async function main() {
     version: '1.0.0',
   });
 
+  // Helper to wrap tool handlers with error handling
+  const wrapTool = (handler: (params: any) => Promise<any>) => {
+    return async (params: any) => {
+      try {
+        const res = await handler(params);
+        return { content: [{ type: 'text' as const, text: JSON.stringify(res, null, 2) }] };
+      } catch (err) {
+        const formatted = formatError(err);
+        return {
+          content: [{ type: 'text' as const, text: `Error: ${formatted.message}` }],
+          isError: true
+        };
+      }
+    };
+  };
+
   // Register Tools
   server.registerTool('read-markdown', {
     description: 'Read a markdown file from the filesystem',
     inputSchema: { path: z.string() }
-  }, async (params) => {
-    const res = await readMarkdownTool(params);
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(readMarkdownTool));
 
   server.registerTool('upload-media', {
     description: 'Upload media to WordPress (local path or remote URL)',
@@ -51,34 +65,22 @@ async function main() {
       })).optional(),
       source: z.string().optional()
     }
-  }, async (params) => {
-    const res = await uploadMediaTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params) => wrapTool(uploadMediaTool)({...params, wpClient}));
 
   server.registerTool('post-to-wordpress', {
     description: 'Create a post on WordPress and set SEO metadata',
     inputSchema: { post: z.any() }
-  }, async (params) => {
-    const res = await postToWordpressTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params) => wrapTool(postToWordpressTool)({...params, wpClient}));
 
   server.registerTool('create-category', {
     description: 'Create a new WordPress category (or return existing if duplicate)',
     inputSchema: { category: z.any() }
-  }, async (params) => {
-    const res = await createCategoryTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params) => wrapTool(createCategoryTool)({...params, wpClient}));
 
   server.registerTool('create-tag', {
     description: 'Create a new WordPress tag (or return existing if duplicate)',
     inputSchema: { tag: z.any() }
-  }, async (params) => {
-    const res = await createTagTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params) => wrapTool(createTagTool)({...params, wpClient}));
 
   server.registerTool('get-taxonomies', {
     description: 'Get categories or tags with optional search and minimal mode',
@@ -88,34 +90,22 @@ async function main() {
       per_page: z.number().optional(),
       minimal: z.boolean().optional()
     }
-  }, async (params: any) => {
-    const res = await getTaxonomiesTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params: any) => wrapTool(getTaxonomiesTool)({...params, wpClient}));
 
   server.registerTool('save-research-data', {
     description: 'Store AI-generated research data for a blog topic',
     inputSchema: { topic: z.string(), researchData: z.any() }
-  }, async (params: any) => {
-    const res = await saveResearchDataTool(params);
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(saveResearchDataTool));
 
   server.registerTool('create-blog-outline', {
     description: 'Store AI-generated blog outline structure',
     inputSchema: { topic: z.string(), outlineData: z.any() }
-  }, async (params: any) => {
-    const res = await createBlogOutlineTool(params);
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(createBlogOutlineTool));
 
   server.registerTool('save-blog-content', {
     description: 'Store AI-generated blog post content',
     inputSchema: { topic: z.string(), content: z.string() }
-  }, async (params: any) => {
-    const res = await saveBlogContentTool(params);
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(saveBlogContentTool));
 
   server.registerTool('generate-image-prompts', {
     description: 'Generate AI image prompts for blog featured and section images',
@@ -124,58 +114,37 @@ async function main() {
       sections: z.array(z.object({ title: z.string(), description: z.string() })).optional(),
       style: z.enum(['professional', 'modern', 'minimalist', 'vibrant', 'technical']).optional()
     }
-  }, async (params: any) => {
-    const res = await generateImagePromptsTool(params);
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(generateImagePromptsTool));
 
   server.registerTool('set-seo-metadata', {
     description: 'Set SEO metadata for a post (supports Yoast and RankMath)',
     inputSchema: { postId: z.number(), seo: z.any() }
-  }, async (params: any) => {
-    const res = await setSEOMetadataTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params: any) => wrapTool(setSEOMetadataTool)({...params, wpClient}));
 
   server.registerTool('embed-images-in-content', {
     description: 'Process content to upload and host images in WordPress',
     inputSchema: { content: z.string(), altPrefix: z.string().optional() }
-  }, async (params: any) => {
-    const res = await embedImagesInContentTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params: any) => wrapTool(embedImagesInContentTool)({...params, wpClient}));
 
   server.registerTool('verify-blog-structure', {
     description: 'Validate blog post structure, quality, and SEO readiness',
     inputSchema: { blog: z.any() }
-  }, async (params: any) => {
-    const res = await verifyBlogStructureTool(params);
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(verifyBlogStructureTool));
 
   server.registerTool('create-complete-blog', {
     description: 'One-stop tool to create a complete blog post with all features',
     inputSchema: { input: z.any() }
-  }, async (params: any) => {
-    const res = await createCompleteBlogTool({...params, wpClient});
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, async (params: any) => wrapTool(createCompleteBlogTool)({...params, wpClient}));
 
   server.registerTool('convert-markdown-to-html', {
     description: 'Convert markdown content to HTML',
     inputSchema: { markdown: z.string() }
-  }, async (params: any) => {
-    const res = await convertMarkdownTool(params);
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(convertMarkdownTool));
 
   server.registerTool('get-blog-creation-workflow', {
     description: 'Get the recommended workflow for creating a blog post',
     inputSchema: {}
-  }, async () => {
-    const res = await getBlogCreationWorkflowTool();
-    return { content: [{ type: 'text', text: JSON.stringify(res, null, 2) }] };
-  });
+  }, wrapTool(getBlogCreationWorkflowTool));
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

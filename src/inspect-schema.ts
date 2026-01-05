@@ -3,7 +3,7 @@ import { WordPressClient } from './wordpress-client.js';
 import { config } from './config.js';
 
 async function main() {
-  console.log('Inspecting GraphQL Schema...');
+  console.error('Inspecting GraphQL Schema...');
   const client = new WordPressClient(config.wordpress);
 
   const query = `
@@ -26,7 +26,7 @@ async function main() {
 
   try {
     const data = await client.runGraphQL(query);
-    console.log(JSON.stringify(data, null, 2));
+    console.error(JSON.stringify(data, null, 2));
   } catch (error) {
     console.error('Error inspecting schema:', error);
   }
